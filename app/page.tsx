@@ -1,65 +1,72 @@
-import Image from "next/image";
+import { prisma } from "@/lib/prisma";
 
-export default function Home() {
+type ProductForecast = {
+  product: string;
+  current: number;
+  reserved: number;
+  forecasted: number;
+  available: number;
+};
+
+export default async function Dashboard() {
+  const products = await prisma.product.findMany({
+    include: {
+      structures: {
+        include: {
+          structure: true,
+        },
+      },
+      transactions: true,
+    },
+  });
+
+  // Calculate forecast and reserved quantities
+  const data: ProductForecast[] = products.map((p) => {
+    const reserved = p.structures.reduce(
+      (acc, ps) => acc + ps.quantity * ps.structure.table.length,
+      0
+    );
+
+    const transactionSum = p.transactions.reduce((acc, t) => acc + t.quantity, 0);
+
+    const current = p.quantity;
+    const forecasted = current + transactionSum - reserved;
+    const available = current - reserved;
+
+    return {
+      product: p.name,
+      current,
+      reserved,
+      forecasted,
+      available,
+    };
+  });
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4">Forecast Dashboard</h2>
+      <table className="w-full table-auto border-collapse border border-gray-300">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="border p-2">Product</th>
+            <th className="border p-2">Current</th>
+            <th className="border p-2">Reserved</th>
+            <th className="border p-2">Forecasted</th>
+            <th className="border p-2">Available</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((p) => (
+            <tr key={p.product}>
+              <td className="border p-2">{p.product}</td>
+              <td className="border p-2">{p.current}</td>
+              <td className="border p-2">{p.reserved}</td>
+              <td className="border p-2">{p.forecasted}</td>
+              <td className="border p-2">{p.available}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

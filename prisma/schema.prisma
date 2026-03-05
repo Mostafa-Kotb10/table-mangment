@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id           Int           @id @default(autoincrement())
+  name         String
+  quantity     Int           @default(0)
+  structures   ProductStructure[]
+  transactions Transaction[] @relation("ProductTransactions")
+}
+
+model Structure {
+  id       Int       @id @default(autoincrement())
+  name     String
+  tables   Table[]       // physical tables of this structure
+  products ProductStructure[]
+
+  @@map("structure")
+}
+
+model ProductStructure {
+  id          Int      @id @default(autoincrement())
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   Int
+  structure   Structure @relation(fields: [structureId], references: [id], onDelete: Cascade) // ✅ add onDelete: Cascade
+  structureId Int
+  quantity    Int
+}
+
+model Table {
+  id          Int       @id @default(autoincrement())
+  structure   Structure @relation(fields: [structureId], references: [id])
+  structureId Int
+  name        String    // batch name, e.g., "Main Hall Tables"
+  quantity    Int       @default(1) // number of tables in this batch
+  createdAt   DateTime  @default(now())
+}
+
+model Transaction {
+  id        Int             @id @default(autoincrement())
+  product   Product         @relation("ProductTransactions", fields: [productId], references: [id])
+  productId Int
+  type      TransactionType
+  quantity  Int
+  createdAt DateTime        @default(now())
+}
+
+enum TransactionType {
+  ADD
+  REMOVE
+}
