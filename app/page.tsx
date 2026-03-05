@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { addProduct, deleteProduct, updateProduct } from "../actions";
+import { addProduct, deleteProduct, updateProduct } from "@/app/actions";
 import { Package, Plus, Trash2, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
